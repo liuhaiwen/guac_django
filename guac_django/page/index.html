@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Title</title>
+		<link href="/static/toastr/toastr.min.css" rel="stylesheet">
+		<style type="text/css">
+			body{background-color: #000;overflow: hidden !important;}
+			#display{
+				z-index: -1;
+				position: absolute;
+				left: 0px;
+				top: 0px;
+				cursor: none!important;
+				}
+		</style>
+	</head>
+	<body>
+	<!--<h1>Guacamole远程桌面</h1>-->
+	<!-- Guacamole -->
+	<!-- <script type="text/javascript" src="/static/guacamole/all.min.js"></script> -->
+	<script type="text/javascript" src="/static/guacamole/all.js"></script>
+	<script type="text/javascript" src="/static/js/jquery-3.4.1.min.js"></script>
+	<script type="text/javascript" src="/static/toastr/toastr.min.js"></script>
+	<script type="text/javascript" src="/static/js/code.js"></script>
+	<!-- Display -->
+	<div id="display"></div>
+
+	<!-- Init -->
+	<script type="text/javascript"> /* <![CDATA[ */
+		function suiying(){
+			var now = getNow();
+			$(".mask_div").remove()
+			watermark({"watermark_txt":"guac_django"+now});
+		}
+		suiying()
+		// Get display div from document
+		var display = document.getElementById("display");
+
+		// Instantiate client, using an HTTP tunnel for communications.
+		//http://guacamole.apache.org/doc/guacamole-common-js/Guacamole.WebSocketTunnel.html
+		var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+		var ws_path = ws_scheme + '://' + window.location.host + "{%url 'jump_ws'%}";
+
+		var cols = $(window).width();
+		var rows = $(window).height();
+
+		var guac = new Guacamole.Client(new Guacamole.WebSocketTunnel(ws_path));
+
+		// Add client to display div
+		display.appendChild(guac.getDisplay().getElement());
+
+		// Error handler
+		guac.onerror = function(error) {
+			console.log(error);
+		};
+		guac.onstatechange = function(onstatechange) {
+			console.log(onstatechange);
+		};
+
+		// Connect
+		guac.connect("w="+cols+"&h="+rows);
+
+		// Disconnect on close
+		window.onunload = function() {
+			guac.disconnect();
+		}
+
+		// Mouse
+		var mouse = new Guacamole.Mouse(guac.getDisplay().getElement());
+
+		mouse.onmousedown =
+		mouse.onmouseup   =
+		mouse.onmousemove = function(mouseState) {
+			guac.sendMouseState(mouseState);
+		};
+
+		// Keyboard
+		var keyboard = new Guacamole.Keyboard(document);
+
+		keyboard.onkeydown = function (keysym) {
+			guac.sendKeyEvent(1, keysym);
+		};
+		keyboard.onkeyup = function (keysym) {
+			guac.sendKeyEvent(0, keysym);
+		};
+		$(window).resize(function () {
+			guac.sendSize($(window).width(),$(window).height());
+			suiying()
+		})
+	</script>
+	</body>
+</html>
